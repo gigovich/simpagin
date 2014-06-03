@@ -62,7 +62,7 @@ func TestRenderer(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	pg.SetRenderer(func (p Page) string {
+	pg.SetRenderer(func(p Page) string {
 		switch p.Type {
 		case LEFT:
 			if p.Number == 0 {

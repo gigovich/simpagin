@@ -18,10 +18,10 @@ const (
 type PageRenderer func(p Page) string
 
 type Page struct {
-	Index int // Object index (position) in total object list
-	Number int // Page number valid value is from range [1..(itemsCount / frameLength)]
-	IsActive bool // Is this page active, paginator contains only one active page
-	Type int // MIDDLE is all pages in frame, LEFT and RIGHT are scroller pages
+	Index    int          // Object index (position) in total object list
+	Number   int          // Page number valid value is from range [1..(itemsCount / frameLength)]
+	IsActive bool         // Is this page active, paginator contains only one active page
+	Type     int          // MIDDLE is all pages in frame, LEFT and RIGHT are scroller pages
 	Renderer PageRenderer // Custom function to render page element as string called by Page.Render()
 }
 
@@ -39,14 +39,14 @@ func (p Page) String() string {
 }
 
 type Paginator struct {
-	ActivePage int // Active page number
-	LeftPage *Page // Page for left scroller, if active page is too close to start it must be nil
-	RightPage *Page // Page for right scroller, if active page is too close to end it must be nil
-	ItemsCount int // Total items count
-	PagesCount int // Auto calculated field whish equals to ItemsCount / ItemsOnPage
-	ItemsOnPage int // How much items contains each page
-	FrameLength int // Number of pages displayed in paginator
-	PageList []*Page // You must fetch this slice to display each paginated page
+	ActivePage  int     // Active page number
+	LeftPage    *Page   // Page for left scroller, if active page is too close to start it must be nil
+	RightPage   *Page   // Page for right scroller, if active page is too close to end it must be nil
+	ItemsCount  int     // Total items count
+	PagesCount  int     // Auto calculated field whish equals to ItemsCount / ItemsOnPage
+	ItemsOnPage int     // How much items contains each page
+	FrameLength int     // Number of pages displayed in paginator
+	PageList    []*Page // You must fetch this slice to display each paginated page
 }
 
 // New returns new Paginator struct, with calculated fields which you can use,
@@ -72,43 +72,43 @@ type Paginator struct {
 // 	}
 // 	fmt.Printf("<a href=\"/page/%s/\">&gt</a>", pg.RightPage.Number)
 func New(activePage, itemsCount, itemsOnPage, frameLength int) (*Paginator, error) {
-	if activePage * itemsOnPage > itemsCount {
+	if activePage*itemsOnPage > itemsCount {
 		return nil, fmt.Errorf("Wrong page number for paginate")
 	}
 	if frameLength < 2 {
 		return nil, fmt.Errorf("Paginated frame can't be less then 2")
 	}
 	pg := &Paginator{
-		ActivePage: activePage,
-		ItemsCount: itemsCount,
+		ActivePage:  activePage,
+		ItemsCount:  itemsCount,
 		ItemsOnPage: itemsOnPage,
 		FrameLength: frameLength,
-		LeftPage: &Page{Type: LEFT},
-		RightPage: &Page{Type: RIGHT},
+		LeftPage:    &Page{Type: LEFT},
+		RightPage:   &Page{Type: RIGHT},
 	}
 	// Calculate PagesCount
 	pg.PagesCount = itemsCount / itemsOnPage
-	if itemsCount % itemsOnPage > 0 {
+	if itemsCount%itemsOnPage > 0 {
 		pg.PagesCount++
 	}
 	// Calculate side indexes
 	distanceToLeftSide := (frameLength / 2)
 	distanceToRightSide := frameLength - (distanceToLeftSide + 1)
 	frameStartIndex := 1
-	if activePage > (distanceToLeftSide + 1) && pg.PagesCount > frameLength {
+	if activePage > (distanceToLeftSide+1) && pg.PagesCount > frameLength {
 		pg.LeftPage = &Page{(activePage - 1) * itemsOnPage, activePage - 1, false, LEFT, nil}
 		frameStartIndex = activePage - distanceToLeftSide
 	}
-	if pg.PagesCount > frameLength && activePage <  (pg.PagesCount - (distanceToRightSide + 1)) {
+	if pg.PagesCount > frameLength && activePage < (pg.PagesCount-(distanceToRightSide+1)) {
 		pg.RightPage = &Page{(activePage + 1) * itemsOnPage, activePage + 1, false, RIGHT, nil}
 	}
 	pages := make([]*Page, min(frameLength, pg.PagesCount))
 	for i := 0; i < len(pages); i++ {
 		pageNumber := i + frameStartIndex
 		pages[i] = &Page{
-			Index: (pageNumber - 1) * itemsOnPage,
+			Index:  (pageNumber - 1) * itemsOnPage,
 			Number: pageNumber,
-			Type: MIDDLE,
+			Type:   MIDDLE,
 		}
 		if pageNumber == activePage {
 			pages[i].IsActive = true
@@ -159,11 +159,11 @@ func New(activePage, itemsCount, itemsOnPage, frameLength int) (*Paginator, erro
 // 	}
 // 	fmt.Print(pg.RightPage)
 func (p *Paginator) SetRenderer(f PageRenderer) {
-	p.LeftPage.Renderer = f	
+	p.LeftPage.Renderer = f
 	for ind := range p.PageList {
 		p.PageList[ind].Renderer = f
 	}
-	p.RightPage.Renderer = f	
+	p.RightPage.Renderer = f
 }
 
 func min(x, y int) int {
