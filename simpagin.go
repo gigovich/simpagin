@@ -1,7 +1,7 @@
 // Use of this source code is governed by BSD license
 // 2014. Moscow. Givi Khojanashvili <gigovich@gmail.com>
 
-// Simpagin is a simple pagination tool
+// Package simpagin realizes simple pagination tool.
 package simpagin
 
 import (
@@ -10,18 +10,25 @@ import (
 )
 
 const (
-	LEFT = iota
-	MIDDLE
-	RIGHT
+	// PageLeft in paginator.
+	PageLeft = iota
+
+	// PageMiddle in paginator.
+	PageMiddle
+
+	// PageRight in paginator.
+	PageRight
 )
 
+// PageRenderer should return builded HTML.
 type PageRenderer func(p Page) string
 
+// Page object contains all attributes for render them in paginator.
 type Page struct {
 	Index    int          // Object index (position) in total object list
 	Number   int          // Page number valid value is from range [1..(itemsCount / frameLength)]
 	IsActive bool         // Is this page active, paginator contains only one active page
-	Type     int          // MIDDLE is all pages in frame, LEFT and RIGHT are scroller pages
+	Type     int          // PageMiddle is all pages in frame, PageLeft and PageRight are scroller pages
 	Renderer PageRenderer // Custom function to render page element as string called by Page.Render()
 }
 
@@ -32,12 +39,12 @@ type Page struct {
 func (p Page) String() string {
 	if p.Renderer != nil {
 		return p.Renderer(p)
-	} else {
-		log.Print("String renderer function is not set. See Paginator.SetRenderer ")
-		return ""
 	}
+	log.Print("String renderer function is not set. See Paginator.SetRenderer ")
+	return ""
 }
 
+// Paginator is main struct which renders pages.
 type Paginator struct {
 	ActivePage  int     // Active page number
 	LeftPage    *Page   // Page for left scroller, if active page is too close to start it must be nil
@@ -83,8 +90,8 @@ func New(activePage, itemsCount, itemsOnPage, frameLength int) (*Paginator, erro
 		ItemsCount:  itemsCount,
 		ItemsOnPage: itemsOnPage,
 		FrameLength: frameLength,
-		LeftPage:    &Page{Type: LEFT},
-		RightPage:   &Page{Type: RIGHT},
+		LeftPage:    &Page{Type: PageLeft},
+		RightPage:   &Page{Type: PageRight},
 	}
 	// Calculate PagesCount
 	pg.PagesCount = itemsCount / itemsOnPage
@@ -96,11 +103,11 @@ func New(activePage, itemsCount, itemsOnPage, frameLength int) (*Paginator, erro
 	distanceToRightSide := frameLength - (distanceToLeftSide + 1)
 	frameStartIndex := 1
 	if activePage > (distanceToLeftSide+1) && pg.PagesCount > frameLength {
-		pg.LeftPage = &Page{(activePage - 1) * itemsOnPage, activePage - 1, false, LEFT, nil}
+		pg.LeftPage = &Page{(activePage - 1) * itemsOnPage, activePage - 1, false, PageLeft, nil}
 		frameStartIndex = activePage - distanceToLeftSide
 	}
 	if pg.PagesCount > frameLength && activePage < (pg.PagesCount-(distanceToRightSide+1)) {
-		pg.RightPage = &Page{(activePage + 1) * itemsOnPage, activePage + 1, false, RIGHT, nil}
+		pg.RightPage = &Page{(activePage + 1) * itemsOnPage, activePage + 1, false, PageRight, nil}
 	}
 	pages := make([]*Page, min(frameLength, pg.PagesCount))
 	for i := 0; i < len(pages); i++ {
@@ -108,7 +115,7 @@ func New(activePage, itemsCount, itemsOnPage, frameLength int) (*Paginator, erro
 		pages[i] = &Page{
 			Index:  (pageNumber - 1) * itemsOnPage,
 			Number: pageNumber,
-			Type:   MIDDLE,
+			Type:   PageMiddle,
 		}
 		if pageNumber == activePage {
 			pages[i].IsActive = true
@@ -132,19 +139,19 @@ func New(activePage, itemsCount, itemsOnPage, frameLength int) (*Paginator, erro
 // 	}
 // 	pg.SetRenderer(func (p Page) string {
 // 		switch p.Type {
-// 		case simpagin.LEFT:
+// 		case simpagin.PageLeft:
 // 			if p.Number == 0 {
 // 				return "<li class=\"disabled\"><span>&laquo;</span></li>"
 // 			} else {
 // 				return fmt.Sprintf("<li><a href=\"?p=%d\">&laquo;</a></li>", p.Number)
 // 			}
-// 		case simpagin.MIDDLE:
+// 		case simpagin.PageMiddle:
 // 			if p.IsActive {
 // 				return fmt.Sprintf("<li class=\"active\"><span>%d</span></li>", p.Number)
 // 			} else {
 // 				return fmt.Sprintf("<li><a href=\"?p=%d\">%d</a></li>", p.Number, p.Number)
 // 			}
-// 		case simpagin.RIGHT:
+// 		case simpagin.PageRight:
 // 			if p.Number == 0 {
 // 				return "<li class=\"disabled\"><span>&raquo;</span></li>"
 // 			} else {

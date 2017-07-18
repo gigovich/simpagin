@@ -37,13 +37,13 @@ func TestPagesValues(t *testing.T) {
 		t.Error(err)
 	}
 	rightValues := []Page{
-		{56, 8, false, MIDDLE, nil},
-		{64, 9, false, MIDDLE, nil},
-		{72, 10, false, MIDDLE, nil},
-		{80, 11, true, MIDDLE, nil},
-		{88, 12, false, MIDDLE, nil},
-		{96, 13, false, MIDDLE, nil},
-		{104, 14, false, MIDDLE, nil},
+		{56, 8, false, PageMiddle, nil},
+		{64, 9, false, PageMiddle, nil},
+		{72, 10, false, PageMiddle, nil},
+		{80, 11, true, PageMiddle, nil},
+		{88, 12, false, PageMiddle, nil},
+		{96, 13, false, PageMiddle, nil},
+		{104, 14, false, PageMiddle, nil},
 	}
 	for ind := range paginator.PageList {
 		if !comp(paginator.PageList[ind], &rightValues[ind]) {
@@ -64,19 +64,19 @@ func TestRenderer(t *testing.T) {
 	}
 	pg.SetRenderer(func(p Page) string {
 		switch p.Type {
-		case LEFT:
+		case PageLeft:
 			if p.Number == 0 {
 				return "<li class=\"disabled\"><span>&laquo;</span></li>"
 			} else {
 				return fmt.Sprintf("<li><a href=\"?p=%d\">&laquo;</a></li>", p.Number)
 			}
-		case MIDDLE:
+		case PageMiddle:
 			if p.IsActive {
 				return fmt.Sprintf("<li class=\"active\"><span>%d</span></li>", p.Number)
 			} else {
 				return fmt.Sprintf("<li><a href=\"?p=%d\">%d</a></li>", p.Number, p.Number)
 			}
-		case RIGHT:
+		case PageRight:
 			if p.Number == 0 {
 				return "<li class=\"disabled\"><span>&raquo;</span></li>"
 			} else {
