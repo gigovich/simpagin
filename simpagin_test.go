@@ -78,39 +78,39 @@ func TestPageRenderer(t *testing.T) {
 		switch p.Type {
 		case PageLeft:
 			if p.Number == 0 {
-				return "<li class=\"disabled\"><span>&laquo;</span></li>"
+				return `<li class="disabled"><span>&laquo;</span></li>`
 			}
-			return fmt.Sprintf("<li><a href=\"?p=%d\">&laquo;</a></li>", p.Number)
+			return fmt.Sprintf(`<li><a href="?p=%d">&laquo;</a></li>`, p.Number)
 		case PageMiddle:
 			if p.IsActive {
-				return fmt.Sprintf("<li class=\"active\"><span>%d</span></li>", p.Number)
+				return fmt.Sprintf(`<li class="active"><span>%d</span></li>`, p.Number)
 			}
-			return fmt.Sprintf("<li><a href=\"?p=%d\">%d</a></li>", p.Number, p.Number)
+			return fmt.Sprintf(`<li><a href="?p=%d">%d</a></li>`, p.Number, p.Number)
 		case PageRight:
 			if p.Number == 0 {
-				return "<li class=\"disabled\"><span>&raquo;</span></li>"
+				return `<li class="disabled"><span>&raquo;</span></li>`
 			}
-			return fmt.Sprintf("<li><a href=\"?p=%d\">&raquo;</a></li>", p.Number)
+			return fmt.Sprintf(`<li><a href="?p=%d">&raquo;</a></li>`, p.Number)
 		}
 		return ""
 	})
-	if pg.LeftPage.String() != "<li><a href=\"?p=9\">&laquo;</a></li>" {
+	if pg.LeftPage.String() != `<li><a href="?p=9">&laquo;</a></li>` {
 		t.Error(pg.LeftPage)
 	}
 	for _, page := range pg.PageList {
 		if page.IsActive {
 			if page.String() != fmt.Sprintf(
-				"<li class=\"active\"><span>%d</span></li>", page.Number) {
+				`<li class="active"><span>%d</span></li>`, page.Number) {
 				t.Error(page)
 			}
 		} else {
 			if page.String() != fmt.Sprintf(
-				"<li><a href=\"?p=%d\">%d</a></li>", page.Number, page.Number) {
+				`<li><a href="?p=%d">%d</a></li>`, page.Number, page.Number) {
 				t.Error(page)
 			}
 		}
 	}
-	if pg.RightPage.String() != "<li><a href=\"?p=11\">&raquo;</a></li>" {
+	if pg.RightPage.String() != `<li><a href="?p=11">&raquo;</a></li>` {
 		t.Error(pg.RightPage)
 	}
 }
