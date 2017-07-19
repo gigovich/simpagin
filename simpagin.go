@@ -5,8 +5,8 @@
 package simpagin
 
 import (
-	"fmt"
-	"log"
+	"strconv"
+	"strings"
 )
 
 const (
@@ -40,7 +40,9 @@ func (p Page) String() string {
 	if p.Renderer != nil {
 		return p.Renderer(p)
 	}
-	log.Print("String renderer function is not set. See Paginator.SetRenderer ")
+	if p.Number > 0 {
+		return strconv.Itoa(p.Number)
+	}
 	return ""
 }
 
@@ -50,25 +52,23 @@ type Paginator struct {
 	LeftPage    *Page   // Page for left scroller, if active page is too close to start it must be nil
 	RightPage   *Page   // Page for right scroller, if active page is too close to end it must be nil
 	ItemsCount  int     // Total items count
-	PagesCount  int     // Auto calculated field whish equals to ItemsCount / ItemsOnPage
+	PagesCount  int     // Auto calculated field which equals to ItemsCount / ItemsOnPage
 	ItemsOnPage int     // How much items contains each page
 	FrameLength int     // Number of pages displayed in paginator
 	PageList    []*Page // You must fetch this slice to display each paginated page
 }
 
 // New returns new Paginator struct, with calculated fields which you can use,
-// to render paginator.
+// to render paginator. If 'activePage' argument is wrong (less then 1 or items on this page out of itemsCount) it
+// will be reset to 1. If 'frameLength' is less then 2, it will be reset to 2.
 //
 // Exemple of usage:
-// 	pg, err := New(
+// 	pg := New(
 // 		10,  // Active page which items we displaying now
 // 		120, // Total count of items
 // 		8,   // We show only 8 items in each page
 // 		10,  // And our paginator rendered as 10 pages list
 // 	)
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
 // 	fmt.Printf("<a href=\"/page/%s/\">&lt</a>", pg.LeftPage.Number)
 // 	for _, page := range pg.PageList {
 // 		if page.IsActive {
@@ -78,13 +78,29 @@ type Paginator struct {
 // 		}
 // 	}
 // 	fmt.Printf("<a href=\"/page/%s/\">&gt</a>", pg.RightPage.Number)
-func New(activePage, itemsCount, itemsOnPage, frameLength int) (*Paginator, error) {
-	if (activePage-1)*itemsOnPage > itemsCount {
-		return nil, fmt.Errorf("Wrong page number for paginate")
+func New(activePage, itemsCount, itemsOnPage, frameLength int) *Paginator {
+	if itemsOnPage < 1 {
+		itemsOnPage = 1
 	}
+
+	// Calculate PagesCount
+	pagesCount := itemsCount / itemsOnPage
+	if itemsCount%itemsOnPage != 0 {
+		pagesCount++
+	}
+
+	if activePage < 1 {
+		activePage = 1
+	}
+
+	if activePage > pagesCount {
+		activePage = 1
+	}
+
 	if frameLength < 2 {
-		return nil, fmt.Errorf("Paginated frame can't be less then 2")
+		frameLength = 2
 	}
+
 	pg := &Paginator{
 		ActivePage:  activePage,
 		ItemsCount:  itemsCount,
@@ -92,24 +108,26 @@ func New(activePage, itemsCount, itemsOnPage, frameLength int) (*Paginator, erro
 		FrameLength: frameLength,
 		LeftPage:    &Page{Type: PageLeft},
 		RightPage:   &Page{Type: PageRight},
+		PagesCount:  pagesCount,
 	}
-	// Calculate PagesCount
-	pg.PagesCount = itemsCount / itemsOnPage
-	if itemsCount%itemsOnPage > 0 {
-		pg.PagesCount++
-	}
+
 	// Calculate side indexes
 	distanceToLeftSide := (frameLength / 2)
-	distanceToRightSide := frameLength - (distanceToLeftSide + 1)
+	distanceToRightSide := frameLength - distanceToLeftSide
 	frameStartIndex := 1
-	if activePage > (distanceToLeftSide+1) && pg.PagesCount > frameLength {
-		pg.LeftPage = &Page{(activePage - 1) * itemsOnPage, activePage - 1, false, PageLeft, nil}
+	if activePage > distanceToLeftSide+1 {
 		frameStartIndex = activePage - distanceToLeftSide
+		if activePage > pagesCount-distanceToRightSide {
+			frameStartIndex -= activePage - (pagesCount - distanceToRightSide) - 1
+		}
 	}
-	if pg.PagesCount > frameLength && activePage < (pg.PagesCount-(distanceToRightSide+1)) {
+	if activePage > 1 {
+		pg.LeftPage = &Page{(activePage - 1) * itemsOnPage, activePage - 1, false, PageLeft, nil}
+	}
+	if activePage < pagesCount {
 		pg.RightPage = &Page{(activePage + 1) * itemsOnPage, activePage + 1, false, PageRight, nil}
 	}
-	pages := make([]*Page, min(frameLength, pg.PagesCount))
+	pages := make([]*Page, min(frameLength, pagesCount))
 	for i := 0; i < len(pages); i++ {
 		pageNumber := i + frameStartIndex
 		pages[i] = &Page{
@@ -122,21 +140,19 @@ func New(activePage, itemsCount, itemsOnPage, frameLength int) (*Paginator, erro
 		}
 	}
 	pg.PageList = pages
-	return pg, nil
+	return pg
 }
 
-// SetRenderer set for all page object in the paginator PageRenderer function.
+// SetRenderer set for all page object in the paginator PageRenderer function. This method returns paginator itself,
+// so you can do chaincalls.
 //
 // Exemple of usage:
-// 	pg, err := simpagin.New(
+// 	pg := simpagin.New(
 // 		10,  // Active page which items we displaying now
 // 		120, // Total count of items
 // 		8,   // We show only 8 items in each page
 // 		10,  // And our paginator rendered as 10 pages list
 // 	)
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
 // 	pg.SetRenderer(func (p Page) string {
 // 		switch p.Type {
 // 		case simpagin.PageLeft:
@@ -165,12 +181,62 @@ func New(activePage, itemsCount, itemsOnPage, frameLength int) (*Paginator, erro
 // 		fmt.Print(page)
 // 	}
 // 	fmt.Print(pg.RightPage)
-func (p *Paginator) SetRenderer(f PageRenderer) {
+func (p *Paginator) SetRenderer(f PageRenderer) *Paginator {
 	p.LeftPage.Renderer = f
 	for ind := range p.PageList {
 		p.PageList[ind].Renderer = f
 	}
 	p.RightPage.Renderer = f
+	return p
+}
+
+// Render collects first, all middle pages and last page render results, concat them and returns as string.
+//
+// Exemple of usage:
+//  pageRender := func (p Page) string {
+// 		switch p.Type {
+// 		case simpagin.PageLeft:
+// 			if p.Number == 0 {
+// 				return "<li class=\"disabled\"><span>&laquo;</span></li>"
+// 			}
+// 			return fmt.Sprintf("<li><a href=\"?p=%d\">&laquo;</a></li>", p.Number)
+// 		case simpagin.PageMiddle:
+// 			if p.IsActive {
+// 				return fmt.Sprintf("<li class=\"active\"><span>%d</span></li>", p.Number)
+// 			}
+// 			return fmt.Sprintf("<li><a href=\"?p=%d\">%d</a></li>", p.Number, p.Number)
+// 		case simpagin.PageRight:
+// 			if p.Number == 0 {
+// 				return "<li class=\"disabled\"><span>&raquo;</span></li>"
+// 			}
+// 			return fmt.Sprintf("<li><a href=\"?p=%d\">&raquo;</a></li>", p.Number, p.Number)
+// 		}
+// 		return ""
+// 	}
+//
+// 	renderedPaginator := simpagin.New(
+// 		10,  // Active page which items we displaying now
+// 		120, // Total count of items
+// 		8,   // We show only 8 items in each page
+// 		10,  // And our paginator rendered as 10 pages list
+// 	).SetRenderer(pageRender).Render()
+//  fmt.Println(renderedPaginator)
+func (p *Paginator) Render() string {
+	l := make([]string, len(p.PageList)+2)
+	l[0] = p.LeftPage.String()
+	for i, page := range p.PageList {
+		l[i+1] = page.String()
+	}
+	l[len(l)-1] = p.RightPage.String()
+	return strings.Join(l, "")
+}
+
+// GetIndex of the first item on the page.
+func (p *Paginator) GetIndex() int {
+	if p.ActivePage-1 >= len(p.PageList) {
+		return 0
+	}
+	return p.PageList[p.ActivePage-1].Index
 }
 
 func min(x, y int) int {

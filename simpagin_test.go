@@ -6,17 +6,35 @@ import (
 )
 
 func TestWrongActivePage(t *testing.T) {
-	_, err := New(2, 10, 10, 10)
-	if err == nil {
+	pg := New(0, 10, 0, 0)
+	t.Run("reset active page", func(t *testing.T) {
+		if pg.ActivePage == 0 {
+			t.Fail()
+		}
+	})
+
+	t.Run("reset items on page", func(t *testing.T) {
+		if pg.ItemsOnPage == 0 {
+			t.Fail()
+		}
+	})
+
+	t.Run("reset frame length", func(t *testing.T) {
+		if pg.FrameLength == 0 {
+			t.Fail()
+		}
+	})
+}
+
+func TestNoItems(t *testing.T) {
+	if v := New(0, 0, 0, 0).Render(); v != "" {
+		t.Log(v)
 		t.Fail()
 	}
 }
 
 func TestRightValuesForSides(t *testing.T) {
-	paginator, err := New(11, 160, 8, 7)
-	if err != nil {
-		t.Error(err)
-	}
+	paginator := New(11, 160, 8, 7)
 	if paginator.LeftPage.Number != 10 {
 		t.Errorf("Left side page number: 10 != %d", paginator.LeftPage.Number)
 	}
@@ -32,10 +50,7 @@ func TestRightValuesForSides(t *testing.T) {
 }
 
 func TestPagesValues(t *testing.T) {
-	paginator, err := New(11, 160, 8, 7)
-	if err != nil {
-		t.Error(err)
-	}
+	paginator := New(11, 160, 8, 7)
 	rightValues := []Page{
 		{56, 8, false, PageMiddle, nil},
 		{64, 9, false, PageMiddle, nil},
@@ -52,36 +67,30 @@ func TestPagesValues(t *testing.T) {
 	}
 }
 
-func TestRenderer(t *testing.T) {
-	pg, err := New(
+func TestPageRenderer(t *testing.T) {
+	pg := New(
 		10,  // Active page which items we already display
 		120, // Total count of items
 		8,   // We show only 8 items in each page
 		10,  // And our paginator rendered as 10 pages list
 	)
-	if err != nil {
-		t.Error(err)
-	}
 	pg.SetRenderer(func(p Page) string {
 		switch p.Type {
 		case PageLeft:
 			if p.Number == 0 {
 				return "<li class=\"disabled\"><span>&laquo;</span></li>"
-			} else {
-				return fmt.Sprintf("<li><a href=\"?p=%d\">&laquo;</a></li>", p.Number)
 			}
+			return fmt.Sprintf("<li><a href=\"?p=%d\">&laquo;</a></li>", p.Number)
 		case PageMiddle:
 			if p.IsActive {
 				return fmt.Sprintf("<li class=\"active\"><span>%d</span></li>", p.Number)
-			} else {
-				return fmt.Sprintf("<li><a href=\"?p=%d\">%d</a></li>", p.Number, p.Number)
 			}
+			return fmt.Sprintf("<li><a href=\"?p=%d\">%d</a></li>", p.Number, p.Number)
 		case PageRight:
 			if p.Number == 0 {
 				return "<li class=\"disabled\"><span>&raquo;</span></li>"
-			} else {
-				return fmt.Sprintf("<li><a href=\"?p=%d\">&raquo;</a></li>", p.Number, p.Number)
 			}
+			return fmt.Sprintf("<li><a href=\"?p=%d\">&raquo;</a></li>", p.Number)
 		}
 		return ""
 	})
@@ -101,8 +110,22 @@ func TestRenderer(t *testing.T) {
 			}
 		}
 	}
-	if pg.RightPage.String() != "<li class=\"disabled\"><span>&raquo;</span></li>" {
+	if pg.RightPage.String() != "<li><a href=\"?p=11\">&raquo;</a></li>" {
 		t.Error(pg.RightPage)
+	}
+}
+
+func TestRender(t *testing.T) {
+	result := New(11, 150, 3, 5).SetRenderer(func(p Page) string { return fmt.Sprintf("%v,", p.Number) }).Render()
+	if result != "10,9,10,11,12,13,12," {
+		t.Fail()
+	}
+}
+
+func TestLastPage(t *testing.T) {
+	result := New(8, 15, 2, 3).SetRenderer(func(p Page) string { return fmt.Sprintf("%v,", p.Number) }).Render()
+	if result != "7,6,7,8,0," {
+		t.Fail()
 	}
 }
 
