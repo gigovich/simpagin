@@ -24,14 +24,19 @@ pg := simpagin.New(
     10,  // And our paginator rendered as 10 pages list
 )
 // Show paginator
-fmt.Printf(`<a href="/page/%s/">&lt</a>`, pg.LeftPage.Number)
+if pg.LeftPage.Number > 1 {
+    fmt.Printf(`<a href="/page/%d/">&lt</a>`, pg.LeftPage.Number)
+}
 for _, page := range pg.PageList {
     if page.IsActive {
         fmt.Print(page.Number)
+    } else {
+        fmt.Printf(`<a href="/page/%d/">%d</a>`, page.Number, page.Number)
     }
-    fmt.Printf(`<a href="/page/%s/">&lt</a>`, pg.LeftPage.Number)
 }
-fmt.Printf(`<a href="/page/%s/">&gt</a>`, pg.RightPage.Number)
+if pg.RightPage.Number > 1 {
+    fmt.Printf(`<a href="/page/%d/">&gt</a>`, pg.RightPage.Number)
+}
 ```
 
 ### Example 2 - customize page render method
